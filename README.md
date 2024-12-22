@@ -11,33 +11,34 @@
 </p>
 
 ## How to Use Defender Switcher?  
-
+<!--
 > [!Note]
 >
 > I renamed **Defender Switcher** to **MediaPlayer.exe** because Windows Defender blocks the file automatically (even though it does the same with the original, it still happens).
+-->
 
 ### 1. **Easy Use (For Regular Users)**  
 - Before using this tool, make sure you turn off Windows Defender in settings.
-- Next, head over to [GitHub Releases](https://github.com/instead1337/Defender-Switcher/releases) and download the latest version of `MediaPlayer.exe`.  
+- Next, head over to [GitHub Releases](https://github.com/instead1337/Defender-Switcher/releases) and download the latest version of `DefenderSwitcher.exe`.  
 - Then, run the program and simply click the buttons to turn Defender on or off.  
 - After that, just restart your PC.
 
 ### 2. **Advanced Use (For Scripts and Projects)**  
 You can use the tool in your own projects or scripts, like in **[Playbooks](https://docs.ameliorated.io/using-wizard/running-playbook.html)**, to disable Defender when needed.
 
-- Head to [GitHub Releases](https://github.com/instead1337/Defender-Switcher/releases) and download the latest `MediaPlayer.exe`, then chuck it in your project.
-- Start `MediaPlayer.exe` with the commands below.
+- Head to [GitHub Releases](https://github.com/instead1337/Defender-Switcher/releases) and download the latest `DefenderSwitcher.exe`, then chuck it in your project.
+- Start `DefenderSwitcher.exe` with the commands below.
 
 To enable or disable Defender:  
 
 **PowerShell:**  
 ```powershell
-& "Path\To\DefenderSwitcher\MediaPlayer.exe" enable_av | disable_av
+& "Path\To\DefenderSwitcher\DefenderSwitcher.exe" enable_av | disable_av
 ```
 
 **CMD:**  
 ```cmd
-start "" "Path\To\DefenderSwitcher\MediaPlayer.exe" enable_av | disable_av
+start "" "Path\To\DefenderSwitcher\DefenderSwitcher.exe" enable_av | disable_av
 ``` 
 
 ---
@@ -54,7 +55,7 @@ start "" "Path\To\DefenderSwitcher\MediaPlayer.exe" enable_av | disable_av
 We keep the method private to stop Microsoft from patching it. This tool is only for those who need to fully disable Defender.  
 Maybe one day, I'll make it public. 
 
-> ❗Don't use it for shady stuff.
+> ❗ Don't use it for shady stuff.
 
 ---
 
@@ -70,7 +71,7 @@ Defender Switcher is licensed under the [GNU General Public License v3.0](https:
 
 **Love the project?** Show your support by clicking the ⭐ (top right) and joining our community of [stargazers](https://github.com/instead1337/Defender-Switcher/stargazers)!
 
-[![Stargazers repo roster for @instead1337/Defender-Switcher](https://reporoster.com/stars/instead1337/Defender-Switcher)](https://github.com/instead1337/Defender-Switcher/stargazers)
+[![Stargazers repo roster for @instead1337/Defender-Switcher](https://reporoster.com/stars/dark/instead1337/Defender-Switcher)](https://github.com/instead1337/Defender-Switcher/stargazers)
 
 ---
 
