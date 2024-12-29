@@ -54,7 +54,7 @@ start "" "Path\To\DefenderSwitcher\DefenderSwitcher.exe" enable_av | disable_av
 
 ## Credits:
 
-- **AtlasOS**: Developed the Defender Switcher utilizing cabinet files to disable Windows Defender. These cabinet files are created using the [sxsc](https://github.com/Atlas-OS/sxsc) method and their `packageinstall.ps1` script.  
+- **AtlasOS**: Introduced the method of using cabinet files and their packageinstall.ps1 script to disable Windows Defender. This approach is utilized in our Defender Switcher.
 - **AveYo**: Provided methods to obtain TrustedInstaller privileges.
 
 ---
