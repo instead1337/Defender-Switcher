@@ -50,12 +50,12 @@ start "" "Path\To\DefenderSwitcher\DefenderSwitcher.exe" enable_av | disable_av
 - **Virtual Machines:** It may not work on VMs, but it should work fine in **Safe Mode**.
 - **Windows Versions:** It might not work on every version of Windows, so use it wisely.
 
-## Why No Public Method?  
-
-We keep the method private to stop Microsoft from patching it. This tool is only for those who need to fully disable Defender.  
-Maybe one day, I'll make it public. 
-
 > ❗ Don't use it for shady stuff.
+
+## Credits:
+
+- **AtlasOS**: Developed the Defender Switcher utilizing cabinet files to disable Windows Defender. These cabinet files are created using the [sxsc](https://github.com/Atlas-OS/sxsc) method and their `packageinstall.ps1` script.  
+- **AveYo**: Provided methods to obtain TrustedInstaller privileges.
 
 ---
 
