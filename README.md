@@ -10,35 +10,37 @@
   <img src="program.png" alt="Defender Switcher" width="500">
 </p>
 
-## How to Use Defender Switcher?  
-<!--
-> [!Note]
->
-> I renamed **Defender Switcher** to **MediaPlayer.exe** because Windows Defender blocks the file automatically (even though it does the same with the original, it still happens).
--->
+## How to Use Defender Switcher?
 
 ### 1. **Easy Use (For Regular Users)**  
+
+>[!Warning]
+>
+>**Defender Switcher** has been rewritten in PowerShell. The executable version will no longer be updated, so we recommend using the PowerShell version going forward.
+
 - Before using this tool, make sure you turn off Windows Defender in settings.
-- Next, head over to [GitHub Releases](https://github.com/instead1337/Defender-Switcher/releases) and download the latest version of `DefenderSwitcher.exe`.  
+- Next, head over to [GitHub Releases](https://github.com/instead1337/Defender-Switcher/releases) and download the latest version of `DefenderSwitcher.ps1`.  
 - Then, run the program and simply click the buttons to turn Defender on or off.  
 - After that, just restart your PC.
 
 ### 2. **Advanced Use (For Scripts and Projects)**  
 You can use the tool in your own projects or scripts, like in **[Playbooks](https://docs.ameliorated.io/using-wizard/running-playbook.html)**, to disable Defender when needed.
 
-- Head to [GitHub Releases](https://github.com/instead1337/Defender-Switcher/releases) and download the latest `DefenderSwitcher.exe`, then chuck it in your project.
-- Start `DefenderSwitcher.exe` with the commands below.
+- Head to [GitHub Releases](https://github.com/instead1337/Defender-Switcher/releases) and download the latest `DefenderSwitcher.ps1`, then chuck it in your project.
+- Start `DefenderSwitcher.ps1` with the commands below.
 
 To enable or disable Defender:  
 
 **PowerShell:**  
 ```powershell
-& "Path\To\DefenderSwitcher\DefenderSwitcher.exe" enable_av | disable_av
+& "Path\To\DefenderSwitcher.ps1" -enable_av | -disable_av
+& "Path\To\DefenderSwitcher.exe" enable_av | disable_av
 ```
 
 **CMD:**  
 ```cmd
-start "" "Path\To\DefenderSwitcher\DefenderSwitcher.exe" enable_av | disable_av
+powershell -File "Path\To\DefenderSwitcher.ps1" -enable_av | -disable_av
+start "" "Path\To\DefenderSwitcher.exe" enable_av | disable_av
 ``` 
 
 ---
@@ -46,7 +48,7 @@ start "" "Path\To\DefenderSwitcher\DefenderSwitcher.exe" enable_av | disable_av
 ## Important Notes:
 
 - **ARM64:** This won't work on ARM64 systems. It could mess up your system, so don't use it there.  
-- **Internet Connection:** You'll need the internet for the tool to work.
+- **Internet Connection:** Required for the executable version of Defender Switcher at all times. For the PowerShell version (`.ps1`), internet is only needed for the first run.
 - **Virtual Machines:** It may not work on VMs, but it should work fine in **Safe Mode**.
 - **Windows Versions:** It might not work on every version of Windows, so use it wisely.
 
@@ -55,7 +57,7 @@ start "" "Path\To\DefenderSwitcher\DefenderSwitcher.exe" enable_av | disable_av
 ## Credits:
 
 - **AtlasOS**: Introduced the method of using cabinet files and their packageinstall.ps1 script to disable Windows Defender. This approach is utilized in our Defender Switcher.
-- **AveYo**: Provided methods to obtain TrustedInstaller privileges.
+- **AveYo**: Provided methods to obtain TrustedInstaller privileges (used only in the executable version of Defender Switcher).
 
 ---
 
