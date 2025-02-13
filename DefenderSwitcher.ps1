@@ -5,7 +5,7 @@ param (
 $interactiveMode = (!$enable_av -and !$disable_av)
 
 # Acquiring high privileges
-if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) { $arguments = "-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath, $MyArgument; Start-Process PowerShell.exe -ArgumentList $arguments -Verb RunAs; exit }
+if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {$arguments = "-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath, $MyArgument; Start-Process PowerShell.exe -ArgumentList $arguments -Verb RunAs; exit}
 if (![Type]::GetType('Privileges')) {
 Add-Type -TypeDefinition @"
 using System;
@@ -34,61 +34,61 @@ public class Privileges {
 }
 "@ -Language CSharp
 }
-function Add-Privileges {'SeRestorePrivilege','SeTakeOwnershipPrivilege','SeDebugPrivilege','SeSystemEnvironmentPrivilege' | ForEach-Object { [Privileges]::AddPrivilege($_) | Out-Null }}
-function Remove-Privileges {'SeRestorePrivilege','SeTakeOwnershipPrivilege','SeDebugPrivilege','SeSystemEnvironmentPrivilege' | ForEach-Object { [Privileges]::RemovePrivilege($_) | Out-Null }}
+function Add-Privileges {'SeRestorePrivilege','SeTakeOwnershipPrivilege','SeDebugPrivilege','SeSystemEnvironmentPrivilege' | ForEach-Object {[Privileges]::AddPrivilege($_) | Out-Null }}
+function Remove-Privileges {'SeRestorePrivilege','SeTakeOwnershipPrivilege','SeDebugPrivilege','SeSystemEnvironmentPrivilege' | ForEach-Object {[Privileges]::RemovePrivilege($_) | Out-Null }}
 
 # Check system integrity
-function HandleError {
-    param([string]$Message)
-    Write-Host "Error: $Message"
-    pause
-    $response = Read-Host "Do you want to run 'sfc /scannow' for system recovery? (Y/N)"
-    if ($response -eq 'Y' -or $response -eq 'y') {
-        Write-Host "Starting system scan..."
-        Start-Process -FilePath "cmd.exe" -ArgumentList "/c sfc /scannow & pause" -Verb RunAs
-        Start-Sleep 2
-        exit
-    } else {
-        Write-Host "Skipping system integrity check. If problems continue, consider reinstalling Windows." -ForegroundColor Red
+function CheckSystemIntegrity {
+    function HandleError {
+        param ([string]$Message)
+        Write-Host "Error: $Message" -ForegroundColor Red
         pause
-        exit
-    }
-}
-
-$ErrorActionPreference = 'SilentlyContinue'
-
-try {
-    if (!(Get-Command -Name Add-WindowsPackage -ErrorAction SilentlyContinue)) {
-        $modulesPath = "C:\Windows\System32\WindowsPowerShell\v1.0\Modules"
-        if (!(Test-Path $modulesPath)) {
-            HandleError "Looks like the PowerShell modules directory is missing at '$modulesPath'."
+        $response = Read-Host "Do you want to run 'sfc /scannow' for system recovery? (Y/N)"
+        if ($response -eq 'Y' -or $response -eq 'y') {
+            Write-Host "Starting system scan..." -ForegroundColor Yellow
+            [Diagnostics.Process]::Start("cmd.exe", "/c sfc /scannow & pause").WaitForExit()
+            exit
         } else {
-            HandleError "'Add-WindowsPackage' command is not available. This might mean Windows is corrupted."
+            Write-Host "Skipping system integrity check. If problems continue, consider reinstalling Windows." -ForegroundColor Red
+            pause
+            exit
         }
     }
 
-    $registryPaths = @(
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing',
-        'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\SideBySide'
-    )
-    foreach ($path in $registryPaths) {
-        if (!(Test-Path $path)) {
-            HandleError "Can't find the registry key at '$path'."
+    $ErrorActionPreference = 'SilentlyContinue'
+
+    try {
+        if (!(Get-Command -Name Add-WindowsPackage -ErrorAction SilentlyContinue)) {
+            $modulesPath = "C:\Windows\System32\WindowsPowerShell\v1.0\Modules"
+            if (!(Test-Path $modulesPath)) {
+                HandleError "PowerShell modules directory missing at '$modulesPath'."
+            } else {
+                HandleError "'Add-WindowsPackage' command not available. Windows may be corrupted."
+            }
         }
+
+        $registryPaths = @(
+            'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing',
+            'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\SideBySide'
+        )
+        foreach ($path in $registryPaths) {
+            if (!(Test-Path $path)) {
+                HandleError "Registry key missing at '$path'."
+            }
+        }
+
+        $services = @('TrustedInstaller', 'wuauserv', 'bits', 'cryptsvc')
+        foreach ($serviceName in $services) {
+            if (!(Get-Service -Name $serviceName -ErrorAction SilentlyContinue)) {
+                HandleError "'$serviceName' service missing."
+            }
+        }
+    } catch {
+        HandleError $_.Exception.Message
     }
 
-    $services = @('TrustedInstaller', 'wuauserv', 'bits', 'cryptsvc')
-    foreach ($serviceName in $services) {
-        $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
-        if ($service -eq $null) {
-            HandleError "'$serviceName' service is missing."
-        }
-    }
-} catch {
-    HandleError $_.Exception.Message
+    $ErrorActionPreference = 'Continue'
 }
-
-$ErrorActionPreference = 'Continue'
 
 # Prerequisite
 Add-Type -TypeDefinition @"
@@ -182,7 +182,7 @@ public class ConsoleManager
 "@
 
 function AdjustDesign {
-    param ([switch]$QuickEdit)
+    param ([switch]$QuickEditOFF)
     Add-Type -AssemblyName System.Windows.Forms
 
     $host.PrivateData.WarningBackgroundColor = 'Black'
@@ -192,7 +192,7 @@ function AdjustDesign {
     $host.UI.RawUI.BackgroundColor = [System.ConsoleColor]::Black
     $host.UI.RawUI.ForegroundColor = [System.ConsoleColor]::White
 
-    if ($QuickEdit) {[ConsoleManager]::QuickEditOFF()}
+    if ($QuickEditOFF) {[ConsoleManager]::QuickEditOFF()}
     [ConsoleManager]::ResizeWindow(850, 550)
     [ConsoleManager]::SetConsoleFont("Consolas", 16)
 
@@ -276,11 +276,11 @@ function MainMenu {
     Write-Host ""
     Write-Host "                                Current Status:" -ForegroundColor Yellow
     if ($status -eq "enabled")
-    { Write-Host "                          Windows Defender is ENABLED" -ForegroundColor Green }
-else{ Write-Host "                          Windows Defender's DISABLED" -ForegroundColor Red }
+    {Write-Host "                          Windows Defender is ENABLED" -ForegroundColor Green}
+else{Write-Host "                          Windows Defender's DISABLED" -ForegroundColor Red}
     if ($programUsable -eq $true) 
-    { Write-Host "                            Defender can be toggled" -ForegroundColor Green }
-else{ Write-Host "                            Connect to the Internet" -ForegroundColor Red }
+    {Write-Host "                            Defender can be toggled" -ForegroundColor Green}
+else{Write-Host "                            Connect to the Internet" -ForegroundColor Red}
     Write-Host "               __________________________________________________" -ForegroundColor DarkGray
     Write-Host ""
     Write-Host "                               Choose an option:" -ForegroundColor Yellow
@@ -321,11 +321,11 @@ function EnableDefender {
             $host.UI.RawUI.ForegroundColor = 'Green'; Write-Host -NoNewline "["; Write-Host -NoNewline "PROCESSING"; Write-Host -NoNewline "] "; $host.UI.RawUI.ForegroundColor = 'White'; Write-Host "Enabling Defender..."
             
             Add-Privileges
-            $ProgressPreference = 'SilentlyContinue'; $WarningPreference = 'SilentlyContinue'; 
+            $ProgressPreference = 'SilentlyContinue'; $WarningPreference = 'SilentlyContinue';
             Get-WindowsPackage -Online | Where-Object { $_.PackageName -like '*AntiBlocker*' } | ForEach-Object {
                 Remove-WindowsPackage -Online -PackageName $_.PackageName -NoRestart
             } | Out-Null 2>&1
-            $ProgressPreference = 'Continue'; $WarningPreference = 'Continue'; 
+            $ProgressPreference = 'Continue'; $WarningPreference = 'Continue';
             Remove-Privileges
 
             CheckDefenderStatus;
@@ -354,9 +354,6 @@ function EnableDefender {
 function DisableDefender {
     cls
     CheckDefenderStatus;
-    if (!$interactiveMode) {
-
-    }
     switch ($status) {
         "disabled" {
             $host.UI.RawUI.ForegroundColor = 'Green'; Write-Host -NoNewline "["; Write-Host -NoNewline "INFO"; Write-Host -NoNewline "] "; $host.UI.RawUI.ForegroundColor = 'White'; Write-Host "Defender is already disabled."
@@ -364,10 +361,12 @@ function DisableDefender {
         default {
             if ($programUsable -eq $true) {
                 $host.UI.RawUI.ForegroundColor = 'Green'; Write-Host -NoNewline "["; Write-Host -NoNewline "PROCESSING"; Write-Host -NoNewline "] "; $host.UI.RawUI.ForegroundColor = 'White'; Write-Host "Disabling Defender..."
+                
                 Add-Privileges 
                 ProcessDefender -InstallCAB $true
                 ProcessDefender -LinkManifests $true
                 Remove-Privileges
+
                 CheckDefenderStatus;
                 switch ($status) {
                     "disabled" {
@@ -510,15 +509,10 @@ function ShowInformation {
 }
 
 function ExitProgram {
-    Write-Host "         3..."
-    Start-Sleep -Seconds 1
-    Write-Host "         2..."
-    Start-Sleep -Seconds 1
-    Write-Host "         1..."
     Start-Sleep -Seconds 1
     exit
 }
 
 if ($enable_av) { AdjustDesign; EnableDefender }
 if ($disable_av) { AdjustDesign; DisableDefender }
-if ($interactiveMode) { AdjustDesign -QuickEdit; MainMenu } else { exit } 
+if ($interactiveMode) { CheckSystemIntegrity; AdjustDesign -QuickEditOFF; MainMenu } else { exit }
