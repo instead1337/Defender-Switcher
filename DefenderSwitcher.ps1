@@ -5,7 +5,7 @@ param (
 $interactiveMode = (!$enable_av -and !$disable_av)
 
 # Acquiring high privileges
-if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {$arguments = "-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath, $MyArgument; Start-Process PowerShell.exe -ArgumentList $arguments -Verb RunAs; exit}
+if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {$arguments = "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""; Start-Process PowerShell.exe -ArgumentList $arguments -Verb RunAs; exit}
 if (![Type]::GetType('Privileges')) {
 Add-Type -TypeDefinition @"
 using System;
@@ -94,120 +94,81 @@ function CheckSystemIntegrity {
 Add-Type -TypeDefinition @"
 using System;
 using System.Runtime.InteropServices;
-
-public class ConsoleManager
-{
-    [DllImport("kernel32.dll", ExactSpelling = true)]
+public class ConsoleManager {
+    [DllImport("kernel32.dll")]
     public static extern IntPtr GetConsoleWindow();
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    [DllImport("user32.dll")]
     public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    static extern IntPtr GetStdHandle(int nStdHandle);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    static extern bool SetCurrentConsoleFontEx(IntPtr hConsoleOutput, bool bMaximumWindow, ref CONSOLE_FONT_INFO_EX lpConsoleCurrentFontEx);
-
-    [DllImport("user32.dll")]
-    public static extern IntPtr GetForegroundWindow();
-
-    [DllImport("user32.dll")]
-    public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    public struct CONSOLE_FONT_INFO_EX
-    {
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetStdHandle(int nStdHandle);
+    [DllImport("kernel32.dll")]
+    public static extern bool SetCurrentConsoleFontEx(IntPtr hConsoleOutput, bool bMaximumWindow, ref CONSOLE_FONT_INFO_EX lpConsoleCurrentFontEx);
+    [DllImport("kernel32.dll")]
+    public static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+    [DllImport("kernel32.dll")]
+    public static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+    [DllImport("user32.dll", CharSet=CharSet.Auto, SetLastError=true)]
+    public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+    [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+    public struct CONSOLE_FONT_INFO_EX {
         public uint cbSize;
         public uint nFont;
         public COORD dwFontSize;
         public int FontFamily;
         public int FontWeight;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)]
         public string FaceName;
     }
-
     [StructLayout(LayoutKind.Sequential)]
-    public struct COORD
-    {
-        public short X;
-        public short Y;
-    }
-
+    public struct COORD { public short X; public short Y; }
     [StructLayout(LayoutKind.Sequential)]
-    public struct RECT
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
-
+    public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
     public const int STD_OUTPUT_HANDLE = -11;
-
-    public static void ResizeWindow(int width, int height)
-    {
-        IntPtr consoleHandle = GetConsoleWindow();
-        MoveWindow(consoleHandle, 0, 0, width, height, true);
+    public static void ResizeWindow(int w, int h) {
+        MoveWindow(GetConsoleWindow(), 0, 0, w, h, true);
     }
-
-    public static void SetConsoleFont(string fontName, short fontSize)
-    {
-        IntPtr hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+    public static void SetConsoleFont(string name, short size) {
         CONSOLE_FONT_INFO_EX info = new CONSOLE_FONT_INFO_EX();
-        info.cbSize = (uint)Marshal.SizeOf(info);
-        info.FaceName = fontName;
-        info.dwFontSize = new COORD { X = fontSize, Y = fontSize };
-        info.FontFamily = 54;  // FF_DONTCARE | DEFAULT_PITCH
-        info.FontWeight = 400; // Normal
-        SetCurrentConsoleFontEx(hnd, false, ref info);
+        info.cbSize = (uint)Marshal.SizeOf(typeof(CONSOLE_FONT_INFO_EX));
+        info.FaceName = name;
+        info.dwFontSize = new COORD { X = size, Y = size };
+        info.FontFamily = 54;
+        info.FontWeight = 400;
+        SetCurrentConsoleFontEx(GetStdHandle(STD_OUTPUT_HANDLE), false, ref info);
     }
-
-    public static void QuickEditOFF()
-    {
+    public static void QuickEditOFF() {
         IntPtr hConIn = GetStdHandle(-10);
-        uint dwOldMode;
-        if (GetConsoleMode(hConIn, out dwOldMode))
-        {
-            SetConsoleMode(hConIn, (uint)((dwOldMode | 0x80) & ~0x40));
-        }
+        uint m;
+        if (GetConsoleMode(hConIn, out m))
+            SetConsoleMode(hConIn, (m | 0x80U) & ~0x40U);
     }
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
 }
 "@
 
 function AdjustDesign {
     param ([switch]$QuickEditOFF)
     Add-Type -AssemblyName System.Windows.Forms
-
     $host.PrivateData.WarningBackgroundColor = 'Black'
-    $host.PrivateData.ErrorBackgroundColor = 'Black'
+    $host.PrivateData.ErrorBackgroundColor   = 'Black'
     $host.PrivateData.VerboseBackgroundColor = 'Black'
-    $host.PrivateData.DebugBackgroundColor = 'Black'
-    $host.UI.RawUI.BackgroundColor = [System.ConsoleColor]::Black
-    $host.UI.RawUI.ForegroundColor = [System.ConsoleColor]::White
+    $host.PrivateData.DebugBackgroundColor   = 'Black'
+    $host.UI.RawUI.BackgroundColor = [ConsoleColor]::Black
+    $host.UI.RawUI.ForegroundColor = [ConsoleColor]::White
 
-    if ($QuickEditOFF) {[ConsoleManager]::QuickEditOFF()}
-    [ConsoleManager]::ResizeWindow(850, 550)
-    [ConsoleManager]::SetConsoleFont("Consolas", 16)
-
+    if ($QuickEditOFF) { [ConsoleManager]::QuickEditOFF() }
+    [ConsoleManager]::ResizeWindow(850,550)
+    [ConsoleManager]::SetConsoleFont("Consolas",16)
     $hwnd = [ConsoleManager]::GetConsoleWindow()
     $rect = New-Object ConsoleManager+RECT
     [ConsoleManager]::GetWindowRect($hwnd, [ref]$rect) | Out-Null
 
-    $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-    $windowWidth = $rect.Right - $rect.Left
-    $windowHeight = $rect.Bottom - $rect.Top
-    $screenWidth = $screen.Width
-    $screenHeight = $screen.Height
-    $newX = [Math]::Max(0, [Math]::Round(($screenWidth - $windowWidth) / 2))
-    $newY = [Math]::Max(0, [Math]::Round(($screenHeight - $windowHeight) / 2))
-    [ConsoleManager]::MoveWindow($hwnd, $newX, $newY, $windowWidth, $windowHeight, $true) | Out-Null
+    $sw = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width
+    $sh = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height
+    $ww = $rect.Right - $rect.Left
+    $wh = $rect.Bottom - $rect.Top
+    $newX = [Math]::Max(0, [Math]::Round(($sw - $ww) / 2))
+    $newY = [Math]::Max(0, [Math]::Round(($sh - $wh) / 2))
+    [ConsoleManager]::MoveWindow($hwnd, $newX, $newY, $ww, $wh, $true) | Out-Null
 }
 
 function CheckDefenderStatus {
@@ -373,7 +334,7 @@ function DisableDefender {
                         $host.UI.RawUI.ForegroundColor = 'Green'; Write-Host -NoNewline "["; Write-Host -NoNewline "INFO"; Write-Host -NoNewline "] "; $host.UI.RawUI.ForegroundColor = 'White'; Write-Host "Defender has been disabled."
                     }
                     default {
-                        $host.UI.RawUI.ForegroundColor = 'Red'; Write-Host -NoNewline "["; Write-Host -NoNewline "ERROR"; Write-Host -NoNewline "] "; $host.UI.RawUI.ForegroundColor = 'White'; Write-Host "Failed to enable Defender."
+                        $host.UI.RawUI.ForegroundColor = 'Red'; Write-Host -NoNewline "["; Write-Host -NoNewline "ERROR"; Write-Host -NoNewline "] "; $host.UI.RawUI.ForegroundColor = 'White'; Write-Host "Failed to disable Defender."
                         Write-Host ""
                         Write-Host "Try to reboot your PC and try again."
                         Write-Host "If error occurs, try to use program in safe boot with ethernet option."
@@ -433,7 +394,12 @@ function ProcessDefender {
             $ProgressPreference = 'Continue'
         } catch {
             $host.UI.RawUI.ForegroundColor = 'Red'; Write-Host -NoNewline "["; Write-Host -NoNewline "ERROR"; Write-Host -NoNewline "] "; $host.UI.RawUI.ForegroundColor = 'White'; Write-Host "Error when adding package '$filePath': $_"
-            return
+            $host.UI.RawUI.ForegroundColor = 'Yellow'; Write-Host -NoNewline "["; Write-Host -NoNewline "WARN"; Write-Host -NoNewline "] "; $host.UI.RawUI.ForegroundColor = 'White'; Write-Host "Attempting to use DISM to install the package..."
+            try {
+                $ProgressPreference = 'SilentlyContinue'
+                DISM /Online /Add-Package /PackagePath:$filePath /NoRestart *>$null
+                $ProgressPreference = 'Continue'
+            } catch {return}
         }
     }
 
