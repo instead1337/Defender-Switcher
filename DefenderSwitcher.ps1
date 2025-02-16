@@ -155,7 +155,7 @@ function AdjustDesign {
     $host.UI.RawUI.BackgroundColor = [ConsoleColor]::Black
     $host.UI.RawUI.ForegroundColor = [ConsoleColor]::White
 
-    if ($QuickEditOFF) { [ConsoleManager]::QuickEditOFF() }
+    if ($QuickEditOFF) {[ConsoleManager]::QuickEditOFF()}
     [ConsoleManager]::ResizeWindow(850,550)
     [ConsoleManager]::SetConsoleFont("Consolas",16)
     $hwnd = [ConsoleManager]::GetConsoleWindow()
@@ -184,16 +184,16 @@ function CheckDefenderStatus {
 }
 
 $pingResult = & ping -n 2 google.com | Select-String "TTL="
-$existingFile = if (Test-Path "$env:WinDir\DefenderSwitcher") { Get-ChildItem -Path "$env:WinDir\DefenderSwitcher" -Filter "*AntiBlocker*" -File | Select-Object -First 1 } else { $null }
+$existingFile = if (Test-Path "$env:WinDir\DefenderSwitcher") {gci -Path "$env:WinDir\DefenderSwitcher" -Filter "*AntiBlocker*" -File | Select-Object -First 1} else {$null}
 $programUsable = $false
 
-switch ($existingFile) {
-    $null {
+switch ($true) {
+    ($null -eq $existingFile) {
         if (!$pingResult) {
             $programUsable = $false
         } else {
             $destinationDir = "$env:WinDir\DefenderSwitcher"
-            $fileName = "Z-RapidOS-AntiBlocker-Package31bf3856ad364e35amd645.0.0.0.cab"
+            $fileName = "Z-RapidOS-AntiBlocker-Package31bf3856ad364e35amd641.0.0.0.cab"
             $destinationPath = Join-Path -Path $destinationDir -ChildPath $fileName
             $fileUrl = "https://rapid-community.ru/downloads/$fileName"
 
@@ -202,14 +202,19 @@ switch ($existingFile) {
             }
 
             curl.exe -s -o $destinationPath $fileUrl > $null 2>&1
-            $programUsable = $true
+
+            if (Test-Path -Path $destinationPath) {
+                $programUsable = $true
+            } else {
+                $programUsable = $false
+            }
         }
         break
-    } 
+    }
     default {
         $programUsable = $true
         $destinationDir = "$env:WinDir\DefenderSwitcher"
-        $fileName = "Z-RapidOS-AntiBlocker-Package31bf3856ad364e35amd645.0.0.0.cab"
+        $fileName = "Z-RapidOS-AntiBlocker-Package31bf3856ad364e35amd641.0.0.0.cab"
         $destinationPath = Join-Path -Path $destinationDir -ChildPath $fileName
         $fileUrl = "https://rapid-community.ru/downloads/$fileName"
 
@@ -361,7 +366,7 @@ function ProcessDefender {
     )
  
     if ($InstallCAB) {
-        $cabPath = Get-ChildItem -Path "$env:WinDir\DefenderSwitcher" -Filter "*AntiBlocker*" -File | Select-Object -First 1
+        $cabPath = gci -Path "$env:WinDir\DefenderSwitcher" -Filter "*AntiBlocker*" -File | Select-Object -First 1
 
         if (!$cabPath) {
             $host.UI.RawUI.ForegroundColor = 'Red'; Write-Host -NoNewline "["; Write-Host -NoNewline "ERROR"; Write-Host -NoNewline "] "; $host.UI.RawUI.ForegroundColor = 'White'; Write-Host "Connect to the internet and restart Defender Switcher to proceed." 
@@ -410,7 +415,7 @@ function ProcessDefender {
         	$srcPathExpanded = [System.Environment]::ExpandEnvironmentVariables("%WinDir%\DefenderSwitcher\WinSxS")
 
             $host.UI.RawUI.ForegroundColor = 'Green'; Write-Host -NoNewline "["; Write-Host -NoNewline "INFO"; Write-Host -NoNewline "] "; $host.UI.RawUI.ForegroundColor = 'White'; Write-Host "Getting manifests..."
-        	$manifests = Get-ChildItem "$env:WinDir\WinSxS\Manifests" -File -Filter "*$version*"
+        	$manifests = gci "$env:WinDir\WinSxS\Manifests" -File -Filter "*$version*"
         	if ($manifests.Count -eq 0) {
                 $host.UI.RawUI.ForegroundColor = 'Red'; Write-Host -NoNewline "["; Write-Host -NoNewline "ERROR"; Write-Host -NoNewline "] "; $host.UI.RawUI.ForegroundColor = 'White'; Write-Host "No manifests found! Can't create repair source."
 	        	return
