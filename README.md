@@ -57,7 +57,7 @@ start "" "Path\To\DefenderSwitcher.exe" enable_av | disable_av
 ## Credits:
 
 - **AtlasOS**: Introduced the method of using cabinet files and their packageinstall.ps1 script to disable Windows Defender. This approach is utilized in our Defender Switcher.
-- **AveYo**: Provided methods to obtain TrustedInstaller privileges (used only in the executable version of Defender Switcher).
+- **AveYo**: Provided methods to obtain TrustedInstaller privileges.
 
 ---
 
