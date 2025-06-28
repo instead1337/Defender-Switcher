@@ -33,9 +33,22 @@ function RunAsTI ($cmd,$arg) { $id='RunAsTI'; $key="Registry::HKU\$(((whoami /us
  start powershell -args "-win 1 -nop -c `n$V `$env:R=(gi `$key -ea 0).getvalue(`$id)-join''; iex `$env:R" -verb runas
 } # lean & mean snippet by AveYo, 2022.01.28
 
-$exe = if ($PSVersionTable.PSVersion.Major -gt 5) {"pwsh.exe"} else {"powershell.exe"}
-$argsStr = ($args-replace'"','""')-join" "
-if (!(whoami /user | findstr "S-1-5-18").Length-gt0) {RunAsTI $exe "-NoP -EP Bypass -File `"$PSCommandPath`" $argsStr"; exit}
+$arg = ( 
+    ($PSBoundParameters.GetEnumerator() |
+        ForEach-Object {
+            if ($_.Value -is [switch] -and $_.Value.IsPresent) {"-$($_.Key)"}
+            elseif ($_.Value -isnot [switch]) {"-$($_.Key) `"$($_.Value -replace '"','""')`""}
+        }
+    ) + 
+    ($args | % {"`"$($_ -replace '"','""')`""})
+) -join ' '
+
+if (!(whoami /user | findstr "S-1-5-18").Length -gt 0) {
+    $exe = if ($PSVersionTable.PSVersion.Major -gt 5) {"pwsh.exe"} else {"powershell.exe"}
+    $script = if ($MyInvocation.PSCommandPath) {$MyInvocation.PSCommandPath} else {$PSCommandPath}
+    RunAsTI $exe "-NoP -EP Bypass -File `"$script`" $arg"
+    exit
+}
 
 # Check system integrity
 function CheckSystemIntegrity {
@@ -185,7 +198,7 @@ function Write-Block {
 }
 
 function CheckDefenderStatus {
-    $packageResult = (Get-WindowsPackage -Online | Where-Object {$_.PackageName -like '*AntiBlocker*'})
+    $packageResult = (Get-WindowsPackage -Online | ? {$_.PackageName -like '*AntiBlocker*'})
     $svcResult = (Get-Service -Name WinDefend -EA 0 | Select-Object -ExpandProperty StartType)
     $svcResult = $svcResult -replace "`r`n", ""
 
@@ -446,6 +459,6 @@ function ShowInformation {
     }
 }
 
-if ($enable_av) {AdjustDesign; EnableDefender}
-if ($disable_av) {AdjustDesign; DisableDefender}
+if ($enable_av) {EnableDefender}
+if ($disable_av) {DisableDefender}
 if ($interactiveMode) {CheckSystemIntegrity; AdjustDesign; MainMenu} else {exit}
