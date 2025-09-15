@@ -451,23 +451,18 @@ function ProcessDefender {
 
         $path = $item.FullName
         $cert = (Get-AuthenticodeSignature $path).SignerCertificate
-        if (!$cert -or $cert.Extensions.EnhancedKeyUsages.Value -ne "1.3.6.1.4.1.311.10.3.6") {
-            Remove-Item $tempPath -Force
-            return
-        }
+        if (!$cert -or $cert.Extensions.EnhancedKeyUsages.Value -ne "1.3.6.1.4.1.311.10.3.6") {return}
         
         Write-Block -Content "PROCESSING" -Title "Installing CAB..."
 
         $ProgressPreference = "SilentlyContinue"
         try {
-            Add-WindowsPackage -Online -PackagePath $path -NoRestart -IgnoreCheck -LogLevel 1
+            Add-WindowsPackage -Online -PackagePath $path -NoRestart -IgnoreCheck -LogLevel 1 *>$null
         } catch {
             Write-Block -Content "PROCESSING" -Title "Using DISM fallback..."
-            DISM /Online /Add-Package /PackagePath:$path /NoRestart
+            DISM /Online /Add-Package /PackagePath:$path /NoRestart *>$null
         }
         $ProgressPreference = "Continue"
-
-        Remove-Item $tempPath -Force
     }
 
     if ($LinkManifests) {
