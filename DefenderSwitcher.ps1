@@ -2,7 +2,7 @@ param ([switch]$enable_av, [switch]$disable_av)
 $interactiveMode = (!$enable_av -and !$disable_av)
 
 # Acquiring the highest privileges
-function RunAsTI ($cmd,$arg) { $id='RunAsTI'; $key="Registry::HKU\$(((whoami /user)-split' ')[-1])\Volatile Environment"; $code=@'
+function RunAsTI ($cmd,$arg) {$id='RunAsTI'; $key="Registry::HKU\$(((whoami /user)-split' ')[-1])\Volatile Environment"; $code=@'
  $I=[int32]; $M=$I.module.gettype("System.Runtime.Interop`Services.Mar`shal"); $P=$I.module.gettype("System.Int`Ptr"); $S=[string]
  $D=@(); $T=@(); $DM=[AppDomain]::CurrentDomain."DefineDynami`cAssembly"(1,1)."DefineDynami`cModule"(1); $Z=[uintptr]::size 
  0..5|% {$D += $DM."Defin`eType"("AveYo_$_",1179913,[ValueType])}; $D += [uintptr]; 4..6|% {$D += $D[$_]."MakeByR`efType"()}
@@ -35,7 +35,7 @@ function RunAsTI ($cmd,$arg) { $id='RunAsTI'; $key="Registry::HKU\$(((whoami /us
 
 $arg = ( 
     ($PSBoundParameters.GetEnumerator() |
-        ForEach-Object {
+        % {
             if ($_.Value -is [switch] -and $_.Value.IsPresent) {"-$($_.Key)"}
             elseif ($_.Value -isnot [switch]) {"-$($_.Key) `"$($_.Value -replace '"','""')`""}
         }
@@ -66,9 +66,9 @@ function CheckSystemIntegrity {
         exit
     }
 
-    $ErrorActionPreference = 'SilentlyContinue'
+    $ErrorActionPreference = "SilentlyContinue"
 
-    if (!(gcm Add-WindowsPackage -EA 0)) {
+    if (!(Get-Command Add-WindowsPackage -EA 0)) {
         if (!(Test-Path "C:\Windows\System32\WindowsPowerShell\v1.0\Modules")) {
             HandleError "Modules directory missing"
         } else {
@@ -76,12 +76,12 @@ function CheckSystemIntegrity {
         }
     }
 
-    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing',
-    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\SideBySide' | % {if (!(Test-Path $_)) {HandleError "Missing: $_"}}
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing",
+    "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\SideBySide" | % {if (!(Test-Path $_)) {HandleError "Missing: $_"}}
 
-    'TrustedInstaller','wuauserv','bits','cryptsvc' | % {if (!(gsv $_ -EA 0)) {HandleError "Missing service: $_"}}
+    "TrustedInstaller", "wuauserv", "bits", "cryptsvc" | % {if (!(Get-Service $_ -EA 0)) {HandleError "Missing service: $_"}}
 
-    $ErrorActionPreference = 'Continue'
+    $ErrorActionPreference = "Continue"
 }
 
 # Prerequisite
@@ -147,16 +147,16 @@ public class ConsoleManager {
 
 function AdjustDesign {
     Add-Type -AssemblyName System.Windows.Forms
-    $host.PrivateData.WarningBackgroundColor = 'Black'
-    $host.PrivateData.ErrorBackgroundColor   = 'Black'
-    $host.PrivateData.VerboseBackgroundColor = 'Black'
-    $host.PrivateData.DebugBackgroundColor   = 'Black'
+    $host.PrivateData.WarningBackgroundColor = "Black"
+    $host.PrivateData.ErrorBackgroundColor   = "Black"
+    $host.PrivateData.VerboseBackgroundColor = "Black"
+    $host.PrivateData.DebugBackgroundColor   = "Black"
     $host.UI.RawUI.BackgroundColor = [ConsoleColor]::Black
     $host.UI.RawUI.ForegroundColor = [ConsoleColor]::White
 
     [ConsoleManager]::QuickEditOFF()
-    [ConsoleManager]::ResizeWindow(850,550)
-    [ConsoleManager]::SetConsoleFont("Consolas",16)
+    [ConsoleManager]::ResizeWindow(850, 550)
+    [ConsoleManager]::SetConsoleFont("Consolas", 16)
     $hwnd = [ConsoleManager]::GetConsoleWindow()
     $rect = New-Object ConsoleManager+RECT
     [ConsoleManager]::GetWindowRect($hwnd, [ref]$rect) *>$null
@@ -183,33 +183,51 @@ function Write-Block {
         [string]$Separator    = ' | ',
         [string]$BracketColor = 'Green',
         [string]$ContentColor = 'White',
-        [string]$TextColor    = 'White'
+        [string]$TextColor    = 'White',
+        [switch]$NoNewLine
     )
-
     if (!$Content) {return}
 
     $spaces = ' ' * $Indent
-    $line = if ($Description) {[String]::Format("{0,-$TitleWidth}", $Title) + $Separator + $Description} else {$Title}
+    $line = if ($Description) {"{0,-$TitleWidth}" -f $Title + $Separator + $Description} else {$Title}
+    $prefix = if ($NoNewLine) {"`r$spaces$LeftBracket"} else {"$spaces$LeftBracket"}
 
-    Write-Host -NoNewline "$spaces$LeftBracket" -F $BracketColor
+    Write-Host -NoNewline $prefix -F $BracketColor
     Write-Host -NoNewline $Content -F $ContentColor
     Write-Host -NoNewline "$RightBracket " -F $BracketColor
-    Write-Host $line -F $TextColor
+    if ($NoNewLine) {Write-Host -NoNewline $line -F $TextColor} else {Write-Host $line -F $TextColor}
 }
 
 function CheckDefenderStatus {
-    $packageResult = (Get-WindowsPackage -Online | ? {$_.PackageName -like '*AntiBlocker*'})
+    $packageResult = (Get-WindowsPackage -Online | ? {$_.PackageName -like "*AntiBlocker*"})
     $svcResult = (Get-Service -Name WinDefend -EA 0 | Select-Object -ExpandProperty StartType)
     $svcResult = $svcResult -replace "`r`n", ""
 
-    if ($packageResult -or $svcResult -eq 'Disabled') {
+    if ($packageResult -or $svcResult -eq "Disabled") {
         $global:status = "disabled"
     } else {
         $global:status = "enabled"
     }
 }
 
-$ping = & ping -n 2 google.com | Select-String "TTL="
+$addresses = @("1.1.1.1", "8.8.8.8", "9.9.9.9")
+$port = 443
+$timeout = 500
+$ping = $false
+foreach ($address in $addresses) {
+    $tcp = New-Object System.Net.Sockets.TcpClient
+    try {
+        $connect = $tcp.BeginConnect($address, $port, $null, $null)
+        if ($connect.AsyncWaitHandle.WaitOne($timeout)) {
+            $tcp.EndConnect($connect)
+            $tcp.Close()
+            $ping = $true
+            break
+        }
+    } catch {}
+    $tcp.Close()
+}
+
 $file = if (Test-Path "$env:WinDir\DefenderSwitcher") {gci "$env:WinDir\DefenderSwitcher" -Filter "*AntiBlocker*" -File} else {$null}
 $programUsable = $false
 
@@ -220,8 +238,9 @@ switch ($true) {
             $name = "Z-RapidOS-AntiBlocker-Package31bf3856ad364e35amd641.0.0.0.cab"
             $dst = "$dir\$name"
             $url = "https://rapid-community.ru/downloads/$name"
-            if (!(Test-Path $dir)) {ni $dir -ItemType Directory *>$null}
-            curl.exe -s -o $dst $url >$null 2>&1
+            if (!(Test-Path $dir)) {New-Item $dir -ItemType Directory *>$null}
+            Add-MpPreference -ExclusionPath $dir *>$null
+            curl.exe -s -o $dst $url *>$null
             if (Test-Path $dst) {$programUsable = $true}
         }
         break
@@ -233,11 +252,11 @@ switch ($true) {
         $dst = "$dir\$name"
         $url = "https://rapid-community.ru/downloads/$name"
         $tmp = "$env:TEMP\$name"
-        curl.exe -s -o $tmp $url >$null 2>&1
+        curl.exe -s -o $tmp $url *>$null
         if ((Test-Path $tmp) -and (Test-Path $dst)) {
             $h1 = (Get-FileHash $tmp).Hash
             $h2 = (Get-FileHash $dst).Hash
-            if ($h1 -ne $h2) {Move-Item $tmp $dst -Force} else {rm $tmp}
+            if ($h1 -ne $h2) {Move-Item $tmp $dst -Force} else {Remove-Item $tmp}
         }
         break
     }
@@ -248,9 +267,9 @@ function MainMenu {
     CheckDefenderStatus;
     Write-Host "`n`n`n`n"
     Write-Host "         ______________________________________________________________" -F DarkGray
-    Write-Host ""
+    Write-Host
     Write-Host "                               Defender Switcher"
-    Write-Host ""
+    Write-Host
     Write-Host "                                Current Status:" -F Yellow
     if ($status -eq "enabled")
     {Write-Host "                          Windows Defender is ENABLED" -F Green}
@@ -259,22 +278,22 @@ else{Write-Host "                          Windows Defender's DISABLED" -F Red}
     {Write-Host "                            Defender can be toggled" -F Green}
 else{Write-Host "                            Connect to the Internet" -F Red}
     Write-Host "               __________________________________________________" -F DarkGray
-    Write-Host ""
+    Write-Host
     Write-Host "                               Choose an option:" -F Yellow
     Write-Block -Content "1" -Title "Enable Windows Defender" -Description "Restore Protection" -Indent 15 -TitleWidth 24
     Write-Block -Content "2" -Title "Disable Windows Defender" -Description "Turn Off Protection" -Indent 15 -TitleWidth 24
     Write-Block -Content "3" -Title "Information" -Description "Useful Information" -Indent 15 -TitleWidth 24
     Write-Block -Content "4" -Title "Exit" -Description "Close Program" -Indent 15 -TitleWidth 24
-    Write-Host ""
+    Write-Host
     Write-Host "               __________________________________________________" -F DarkGray
-    Write-Host ""
+    Write-Host
     Write-Host "              Choose a menu option using your keyboard [1,2,3,4] :" -F Green
-    Write-Host ""
+    Write-Host
     Write-Host "         ______________________________________________________________" -F DarkGray
-    Write-Host ""
+    Write-Host
 
     [ConsoleManager]::QuickEditOFF()
-    $host.UI.RawUI.KeyAvailable > $null 2>&1
+    $host.UI.RawUI.KeyAvailable >$null 2>&1
     $choice = $host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown').Character
     switch ($choice) {
         '1' {EnableDefender}
@@ -282,139 +301,6 @@ else{Write-Host "                            Connect to the Internet" -F Red}
         '3' {ShowInformation}
         '4' {Start-Sleep -Seconds 1; exit}
         default {MainMenu}
-    }
-}
-
-function EnableDefender {
-    cls
-    CheckDefenderStatus;
-    switch ($status) {
-        "enabled" {
-            Write-Block -Content "INFO" -Title "Defender is already enabled."
-        }
-        default {
-            [ConsoleManager]::QuickEditON()
-            Write-Block -Content "PROCESSING" -Title "Enabling Defender..."
-
-            Write-Block -Content "INFO" -Title "Removing CAB..."
-            $ProgressPreference = 'SilentlyContinue'; $WarningPreference = 'SilentlyContinue'
-            Get-WindowsPackage -Online | ? {$_.PackageName -like '*AntiBlocker*'} | % {
-                Remove-WindowsPackage -Online -PackageName $_.PackageName -NoRestart
-            } *>$null
-            $ProgressPreference = 'Continue'; $WarningPreference = 'Continue'
-
-            Write-Block -Content "INFO" -Title "Removing RepairSrc..."
-            $path = [Environment]::ExpandEnvironmentVariables("%WinDir%\DefenderSwitcher\WinSxS")
-            if (Test-Path $path) {del $path -Recurse -Force -EA 0}
-            $regKey = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Servicing"
-            if (Test-Path $regKey) {Remove-ItemProperty -Path $regKey -Name "LocalSourcePath" -EA 0}
-
-            CheckDefenderStatus;
-            switch ($status) {
-                "enabled" {
-                    Write-Block -Content "INFO" -Title "Defender has been enabled."
-                }
-                default {
-                    Write-Block -Content "ERROR" -Title "Failed to enable Defender." -ContentColor "Red"
-                    Write-Host ""
-                    Write-Host "Try to reboot your PC and try again."
-                    Write-Host "If error occurs, try to use program in safe boot with ethernet option."
-                    Write-Host "If nothing helped, please, make an issue on GitHub or write in Rapid Community's discord server for help."
-                }
-            }
-        }
-    }
-    if ($interactiveMode) {
-        pause
-        MainMenu
-    } else {
-        exit
-    }
-}
-
-function DisableDefender {
-    cls
-    CheckDefenderStatus;
-    switch ($status) {
-        "disabled" {
-            Write-Block -Content "INFO" -Title "Defender is already disabled."
-        }
-        default {
-            [ConsoleManager]::QuickEditON()
-            if ($programUsable -eq $true) {
-                Write-Block -Content "PROCESSING" -Title "Disabling Defender..."
-
-                ProcessDefender -InstallCAB $true
-                ProcessDefender -LinkManifests $true
-
-                CheckDefenderStatus;
-                switch ($status) {
-                    "disabled" {
-                        Write-Block -Content "INFO" -Title "Defender has been disabled."
-                    }
-                    default {
-                        Write-Block -Content "ERROR" -Title "Failed to disable Defender." -ContentColor "Red"
-                        Write-Host ""
-                        Write-Host "Try to reboot your PC and try again."
-                        Write-Host "If error occurs, try to use program in safe boot with ethernet option."
-                        Write-Host "If nothing helped, please, make an issue on GitHub or write in Rapid Community's discord server for help."
-                    }
-                }
-            } else {
-                Write-Block -Content "ERROR" -Title "Connect to the internet and restart Defender Switcher to proceed." -ContentColor "Red"
-            }
-        }
-    }
-    if ($interactiveMode) {
-        pause
-        MainMenu
-    } else {
-        exit
-    }
-}
-
-function ProcessDefender {
-    param([switch]$InstallCAB, [switch]$LinkManifests)
-
-    if ($InstallCAB) {
-        $item = gci "$env:WinDir\DefenderSwitcher" -Filter "*AntiBlocker*" -File
-        if (!$item) {return}
-
-        $path = $item.FullName
-        $cert = (Get-AuthenticodeSignature $path).SignerCertificate
-        if (!$cert -or $cert.Extensions.EnhancedKeyUsages.Value -ne "1.3.6.1.4.1.311.10.3.6") {return}
-
-        $regKey = "HKLM:\Software\Microsoft\SystemCertificates\ROOT\Certificates\8A334AA8052DD244A647306A76B8178FA215F344"
-        if (!(Test-Path $regKey)) {mkdir $regKey -Force *>$null}
-
-        Write-Block -Content "INFO" -Title "Installing CAB..."
-        $ProgressPreference = 'SilentlyContinue'
-        try {
-            Add-WindowsPackage -Online -PackagePath $path -NoRestart -IgnoreCheck -LogLevel 1 *>$null
-        } catch {
-            Write-Block -Content "INFO" -Title "Using DISM fallback..."
-            DISM /Online /Add-Package /PackagePath:$path /NoRestart *>$null
-        }
-        $ProgressPreference = 'Continue'
-    }
-
-    if ($LinkManifests) {
-        CheckDefenderStatus; if ($status -ne "disabled") {return}
-
-        $version = '38655.38527.65535.65535'
-        $src = [Environment]::ExpandEnvironmentVariables("%WinDir%\DefenderSwitcher\WinSxS")
-        $list = gci "$env:WinDir\WinSxS\Manifests" -File -Filter "*$version*"
-        if (!$list) {return}
-
-        if (Test-Path $src) {del $src -Recurse -Force}
-        mkdir "$src\Manifests" -Force *>$null
-
-        Write-Block -Content "INFO" -Title "Linking manifests..."
-        $list | % {New-Item -ItemType HardLink -Path "$src\Manifests\$($_.Name)" -Target $_.FullName *>$null}
-
-        $regKey = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Servicing"
-        if (!(Test-Path $regKey)) {mkdir $regKey -Force *>$null}
-        Set-ItemProperty -Path $regKey -Name "LocalSourcePath" -Value "%WinDir%\DefenderSwitcher\WinSxS" -Type ExpandString -Force
     }
 }
 
@@ -456,6 +342,151 @@ function ShowInformation {
             '6' {Start-Process "https://rapid-community.ru"}
             'q' {MainMenu}
         }
+    }
+}
+
+function EnableDefender {
+    cls
+    CheckDefenderStatus;
+    switch ($status) {
+        "enabled" {
+            Write-Block -Content "INFO" -Title "Defender is already enabled."
+        }
+        default {
+            [ConsoleManager]::QuickEditON()
+            Write-Block -Content "INFO" -Title "Enabling Defender..."
+
+            reg add "HKLM\SYSTEM\CurrentControlSet\Services\WdFilter\Instances\WdFilter Instance" /v Altitude /t REG_SZ /d 328010 /f *>$null
+
+            Write-Block -Content "PROCESSING" -Title "Removing CAB..."
+            $ProgressPreference = "SilentlyContinue"; $WarningPreference = "SilentlyContinue"
+            Get-WindowsPackage -Online | ? {$_.PackageName -like "*AntiBlocker*"} | % {
+                Remove-WindowsPackage -Online -PackageName $_.PackageName -NoRestart
+            } *>$null
+            $ProgressPreference = "Continue"; $WarningPreference = "Continue"
+
+            Write-Block -Content "PROCESSING" -Title "Removing RepairSrc..."
+            $path = [Environment]::ExpandEnvironmentVariables("%WinDir%\DefenderSwitcher\WinSxS")
+            if (Test-Path $path) {del $path -Recurse -Force -EA 0}
+            $regKey = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Servicing"
+            if (Test-Path $regKey) {Remove-ItemProperty -Path $regKey -Name "LocalSourcePath" -EA 0}
+
+            CheckDefenderStatus;
+            switch ($status) {
+                "enabled" {
+                    Write-Block -Content "INFO" -Title "Defender has been enabled."
+                }
+                default {
+                    Write-Block -Content "ERROR" -Title "Failed to enable Defender." -ContentColor "Red"
+                    Write-Host "`nTry to reboot your PC and try again."
+                    Write-Host "If error occurs, try to use program in safe boot with ethernet option."
+                    Write-Host "If nothing helped, please, make an issue on GitHub or write in Rapid Community's discord server for help."
+                }
+            }
+        }
+    }
+    if ($interactiveMode) {
+        pause
+        MainMenu
+    } else {
+        exit
+    }
+}
+
+function DisableDefender {
+    cls
+    CheckDefenderStatus;
+    switch ($status) {
+        "disabled" {
+            Write-Block -Content "INFO" -Title "Defender is already disabled."
+        }
+        default {
+            [ConsoleManager]::QuickEditON()
+            if ($programUsable -eq $true) {
+                Write-Block -Content "INFO" -Title "Disabling Defender..."
+
+                # Bypasses Tamper Protection if WdFilter is vulnerable
+                # https://www.alteredsecurity.com/post/disabling-tamper-protection-and-other-defender-mde-components
+                reg delete "HKLM\SYSTEM\CurrentControlSet\Services\WdFilter\Instances\WdFilter Instance" /v Altitude /f *>$null
+                reg add "HKLM\SOFTWARE\Microsoft\Windows Defender\Features" /v TamperProtection /t REG_DWORD /d 4 /f *>$null
+
+                ProcessDefender -InstallCAB $true
+                ProcessDefender -LinkManifests $true
+
+                CheckDefenderStatus;
+                switch ($status) {
+                    "disabled" {
+                        Write-Block -Content "INFO" -Title "Defender has been disabled."
+                    }
+                    default {
+                        Write-Block -Content "ERROR" -Title "Failed to disable Defender." -ContentColor "Red"
+                        Write-Host "---"
+                        Write-Host "Try to reboot your PC and try again."
+                        Write-Host "If error occurs, try to use program in safe boot with ethernet option."
+                        Write-Host "If nothing helped, please, make an issue on GitHub or write in Rapid Community's discord server for help."
+                        Write-Host "---"
+
+                        reg add "HKLM\SYSTEM\CurrentControlSet\Services\WdFilter\Instances\WdFilter Instance" /v Altitude /t REG_SZ /d 328010 /f *>$null
+                    }
+                }
+            } else {
+                Write-Block -Content "ERROR" -Title "Connect to the internet and restart Defender Switcher to proceed." -ContentColor "Red"
+            }
+        }
+    }
+    if ($interactiveMode) {
+        pause
+        MainMenu
+    } else {
+        exit
+    }
+}
+
+function ProcessDefender {
+    param([switch]$InstallCAB, [switch]$LinkManifests)
+
+    if ($InstallCAB) {
+        $item = gci "$env:WinDir\DefenderSwitcher" -Filter "*AntiBlocker*" -File
+        if (!$item) {return}
+
+        $path = $item.FullName
+        $cert = (Get-AuthenticodeSignature $path).SignerCertificate
+        if (!$cert -or $cert.Extensions.EnhancedKeyUsages.Value -ne "1.3.6.1.4.1.311.10.3.6") {
+            Remove-Item $tempPath -Force
+            return
+        }
+        
+        Write-Block -Content "PROCESSING" -Title "Installing CAB..."
+
+        $ProgressPreference = "SilentlyContinue"
+        try {
+            Add-WindowsPackage -Online -PackagePath $path -NoRestart -IgnoreCheck -LogLevel 1
+        } catch {
+            Write-Block -Content "PROCESSING" -Title "Using DISM fallback..."
+            DISM /Online /Add-Package /PackagePath:$path /NoRestart
+        }
+        $ProgressPreference = "Continue"
+
+        Remove-Item $tempPath -Force
+    }
+
+    if ($LinkManifests) {
+        CheckDefenderStatus; if ($status -ne "disabled") {return}
+
+        $version = "38655.38527.65535.65535"
+        $src = [Environment]::ExpandEnvironmentVariables("%WinDir%\DefenderSwitcher\WinSxS")
+        $list = gci "$env:WinDir\WinSxS\Manifests" -File -Filter "*$version*"
+        if (!$list) {return}
+
+        if (Test-Path $src) {del $src -Recurse -Force}
+        mkdir "$src\Manifests" -Force *>$null
+
+        Write-Block -Content "PROCESSING" -Title "Linking manifests..."
+        $list | % {New-Item -ItemType HardLink -Path "$src\Manifests\$($_.Name)" -Target $_.FullName *>$null}
+
+        $regKey = "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\Servicing"
+        if (!(Test-Path $regKey)) {mkdir $regKey -Force *>$null}
+        Set-ItemProperty -Path $regKey -Name "LocalSourcePath" -Value "%WinDir%\DefenderSwitcher\WinSxS" -Type ExpandString -Force
     }
 }
 
